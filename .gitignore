@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build outputs (rebuilt during CI)
+frontend/dist/
+# Note: backend/static/ is gitignored but rebuilt during CI from frontend/dist
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PyInstaller
+*.manifest
+*.spec.bak
+
+# Logs
+*.log
+
+# Local dev
+.env.local
+.env.development
+
+# Environment files with secrets (use GitHub Secrets instead)
+.env

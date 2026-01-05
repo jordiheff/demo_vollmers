@@ -1,0 +1,105 @@
+name: Build Windows Demo
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pyinstaller
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Copy frontend to backend/static
+        run: |
+          if (Test-Path backend/static) { Remove-Item -Recurse -Force backend/static }
+          New-Item -ItemType Directory -Path backend/static
+          Copy-Item -Recurse frontend/dist/* backend/static/
+
+      - name: Build executable with PyInstaller
+        run: pyinstaller nutrition_label.spec --clean
+
+      - name: Create .env config
+        run: |
+          @"
+          # Nutrition Label Generator Configuration
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          USDA_API_KEY=${{ secrets.USDA_API_KEY }}
+          HOST=0.0.0.0
+          PORT=8000
+          DEBUG=false
+          CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+          RATE_LIMIT_ENABLED=false
+          MAX_FILE_SIZE_MB=10
+          SQLITE_DB_PATH=./data/nutrition_cache.db
+          USDA_CACHE_EXPIRY_DAYS=90
+          "@ | Out-File -FilePath dist/NutritionLabelGenerator/.env -Encoding UTF8
+
+      - name: Create README
+        run: |
+          @"
+          ====================================================
+            Nutrition Label Generator - Demo Version
+          ====================================================
+
+          QUICK START:
+          1. Double-click NutritionLabelGenerator.exe
+          2. Wait for browser to open (about 2 seconds)
+          3. Use the application!
+
+          TO QUIT:
+          - Close the black console window
+          - Or press Ctrl+C in the console
+
+          REQUIREMENTS:
+          - Windows 10 or later
+          - Internet connection (for OpenAI API)
+          - Modern web browser (Chrome, Firefox, Edge)
+
+          TROUBLESHOOTING:
+          - If nothing happens, make sure you have internet access
+          - If you get an API error, the OpenAI API key may be invalid
+          - Try running as Administrator if you have issues
+
+          NOTES:
+          - Your files are processed using OpenAI GPT-4o Vision
+          - No data is stored on external servers
+          - The application runs entirely on your computer
+
+          For support, contact the developer.
+          "@ | Out-File -FilePath dist/NutritionLabelGenerator/README.txt -Encoding UTF8
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutritionLabelGenerator-Windows
+          path: dist/NutritionLabelGenerator/
+          compression-level: 9
